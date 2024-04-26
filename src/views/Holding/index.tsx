@@ -1,37 +1,25 @@
 import { SafeAreaView } from 'react-native'
-import React, { useEffect, useState } from 'react'
-import { StockHoldingInterface, UserStockInterface } from '../../types';
+import React from 'react'
+import { UserStockInterface } from '../../types';
 import { Style } from './style';
 import { Header, Loader, Error, HoldingList, HoldingSummary } from '../../components';
 import { API_URL } from '../../constants';
+import useFetchAPI from '../../utils/hooks/useFetchAPI';
 
 const Holding = () => {
 
-    // States to manage stock holding data, screen state and summary view
-    const [data, setData] = useState<StockHoldingInterface[]>([]);
-    const [screen, setScreen] = useState<'loader' | 'error' | 'listing'>('loader');
+    const { data, error, isLoading } = useFetchAPI<UserStockInterface>(API_URL);
 
-    // Effect hook to fetch stock holding data on component mount
-    useEffect(() => {
-        fetch(API_URL)
-            .then(resp => {
-                if (resp.status !== 200) {
-                    setScreen('error');
-                    return;
-                }
-                resp.json()
-                    .then((data: UserStockInterface) => {
-                        setData(data.userHolding);
-                        setScreen('listing');
-                    })
-                    .catch(err => {
-                        setScreen('error');
-                    });
-            })
-            .catch(() => {
-                setScreen('error');
-            })
-    }, []);
+    if (isLoading) {
+        return <Loader />;
+    }
+
+    if (error || !data) {
+        return <Error />;
+    }
+
+    // Handle successful data retrieval using `data`
+    const userHolding = data.userHolding;
 
     return (
         <SafeAreaView style={Style.container}>
@@ -39,22 +27,14 @@ const Holding = () => {
             {/* Header View */}
             <Header />
 
-            {/* Loader View */}
-            {screen === "loader" && <Loader />}
-
-            {/* Error View */}
-            {screen === "error" && <Error />}
-
             {/* Listing and Summary View */}
-            {screen === "listing" && (
-                <>
-                    {/* List of Stock Holdings */}
-                    <HoldingList data={data} />
+            <>
+                {/* List of Stock Holdings */}
+                <HoldingList data={userHolding} />
 
-                    {/* Footer with Summary Expander */}
-                    <HoldingSummary data={data} />
-                </>
-            )}
+                {/* Footer with Summary Expander */}
+                <HoldingSummary data={userHolding} />
+            </>
         </SafeAreaView>
     )
 }
